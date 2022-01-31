@@ -1,0 +1,43 @@
+parameters:
+  - name: ENVIRONMENT
+    type: string
+    default: ''
+  - name: BRANCH_ARTIFACT
+    type: string
+    default: ''
+  - name: ARTIFACT_NAME
+    type: string
+    default: "$(Build.DefinitionName)"
+  - name: BUILDID_ARTIFACT
+    type: string
+    default: ''
+  - name: RUNTIME_STACK
+    type: string
+    default: ''
+  - name: STARTUP_COMMAND
+    type: string
+    default: ''
+  - name: EXECUTE_DATABASE_SCRIPTS
+    type: boolean
+    default: false
+steps:
+  - template: deploy/deploy_webapp.yml@scripts
+    parameters:
+      SUBSCRIPTION: "rg-digitalcustomer-${{ parameters.ENVIRONMENT }}"
+      BRANCH_ARTIFACT: "${{ parameters.BRANCH_ARTIFACT }}"
+      ARTIFACT_NAME: "${{ parameters.ARTIFACT_NAME }}"
+      BUILDID_ARTIFACT: "${{ parameters.BUILDID_ARTIFACT }}"
+      WEBAPP_NAME: "$(SERVICENAME)-${{ parameters.ENVIRONMENT }}"
+      RUNTIME_STACK: "${{ parameters.RUNTIME_STACK }}"
+      STARTUP_COMMAND: "${{ parameters.STARTUP_COMMAND }}"
+
+  - template: slack/message.yml@scripts
+    parameters:
+      CONDITION: true
+      SLACK_TOKEN: $(SLACK_TOKEN)
+      SLACK_CHANNEL: $(SLACK_CHANNEL)
+      SLACK_MESSAGE: |
+        :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-${{ lower(parameters.ENVIRONMENT) }}-$(Build.BuildId)>
+        :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+        Environment: ${{ lower(parameters.ENVIRONMENT) }} - $(Build.BuildId)
+        DeployedSite: <https://$(SERVICENAME)-${{ lower(parameters.ENVIRONMENT) }}.azurewebsites.net|$(SERVICENAME)-${{ lower(parameters.ENVIRONMENT) }}>

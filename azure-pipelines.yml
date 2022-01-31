@@ -1,0 +1,219 @@
+resources:
+  repositories:
+    - repository: scripts
+      type: github
+      name: SmartPyme-pe/shared-library
+      ref: refs/heads/build-npm-v2
+      endpoint: SmartPyme-pe
+
+pool:
+  vmImage: 'ubuntu-20.04'
+
+parameters:
+  - name: BUILDID_ARTIFACT
+    type: string
+    default: '0'
+
+variables:
+  SLACK_CHANNEL: '#cmaccusco-virtual-agency'
+  TRIGGER_BUILD: ${{ and( in(variables['Build.SourceBranch'], 'refs/heads/development', 'refs/heads/main'), eq( parameters.BUILDID_ARTIFACT, '0') ) }}
+  TRIGGER_DEPLOY: ${{ and( in(variables['Build.SourceBranch'], 'refs/heads/development', 'refs/heads/main'), eq( parameters.BUILDID_ARTIFACT, '0') ) }}
+
+stages:
+  - stage: build
+    condition: ${{ variables.TRIGGER_BUILD }}
+    jobs:
+      - job: build_npm_fees
+        variables:
+          SERVICENAME: 'api-fees-digitalcustomer'
+          BASE_DIRECTORY: 'credit-payment-fees'
+        steps:
+          - template: build/npm.yml@scripts
+            parameters:
+              WORKING_DIRECTORY: $(BASE_DIRECTORY)
+              BUILD_DIRECTORY: ./
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              BUILD: true
+              PUBLISH: true
+              DEBUG: true
+
+          - template: slack/message.yml@scripts
+            parameters:
+              CONDITION: true
+              SLACK_TOKEN: $(SLACK_TOKEN)
+              SLACK_CHANNEL: $(SLACK_CHANNEL)
+              SLACK_MESSAGE: |
+                :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-$(Build.BuildId)>
+                :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+                :git: $(Build.Repository.Uri)/tree/$(Build.SourceBranchName) - $(SERVICENAME)
+
+      - job: build_npm_statistics
+        variables:
+          SERVICENAME: 'api-statistics-digitalcustomer'
+          BASE_DIRECTORY: 'credit-query-statistics'
+        steps:
+          - template: build/npm.yml@scripts
+            parameters:
+              WORKING_DIRECTORY: $(BASE_DIRECTORY)
+              BUILD_DIRECTORY: ./
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              BUILD: true
+              PUBLISH: true
+              DEBUG: true
+
+          - template: slack/message.yml@scripts
+            parameters:
+              CONDITION: true
+              SLACK_TOKEN: $(SLACK_TOKEN)
+              SLACK_CHANNEL: $(SLACK_CHANNEL)
+              SLACK_MESSAGE: |
+                :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-$(Build.BuildId)>
+                :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+                :git: $(Build.Repository.Uri)/tree/$(Build.SourceBranchName) - $(SERVICENAME)
+
+      - job: build_npm_credits
+        variables:
+          SERVICENAME: 'api-credits-digitalcustomer'
+          BASE_DIRECTORY: 'credits'
+        steps:
+          - template: build/npm.yml@scripts
+            parameters:
+              WORKING_DIRECTORY: $(BASE_DIRECTORY)
+              BUILD_DIRECTORY: ./
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              BUILD: true
+              PUBLISH: true
+              DEBUG: true
+
+          - template: slack/message.yml@scripts
+            parameters:
+              CONDITION: true
+              SLACK_TOKEN: $(SLACK_TOKEN)
+              SLACK_CHANNEL: $(SLACK_CHANNEL)
+              SLACK_MESSAGE: |
+                :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-$(Build.BuildId)>
+                :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+                :git: $(Build.Repository.Uri)/tree/$(Build.SourceBranchName) - $(SERVICENAME)
+
+      - job: build_npm_customers
+        variables:
+          SERVICENAME: 'api-customers-digitalcustomer'
+          BASE_DIRECTORY: 'customers'
+        steps:
+          - template: build/npm.yml@scripts
+            parameters:
+              WORKING_DIRECTORY: $(BASE_DIRECTORY)
+              BUILD_DIRECTORY: ./
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              BUILD: true
+              PUBLISH: true
+              DEBUG: true
+
+          - template: slack/message.yml@scripts
+            parameters:
+              CONDITION: true
+              SLACK_TOKEN: $(SLACK_TOKEN)
+              SLACK_CHANNEL: $(SLACK_CHANNEL)
+              SLACK_MESSAGE: |
+                :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-$(Build.BuildId)>
+                :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+                :git: $(Build.Repository.Uri)/tree/$(Build.SourceBranchName) - $(SERVICENAME)
+
+      - job: build_npm_article
+        variables:
+          SERVICENAME: 'api-article-digitalcustomer'
+          BASE_DIRECTORY: 'article-votes'
+        steps:
+          - template: build/npm.yml@scripts
+            parameters:
+              WORKING_DIRECTORY: $(BASE_DIRECTORY)
+              BUILD_DIRECTORY: ./
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              BUILD: true
+              PUBLISH: true
+              DEBUG: true
+
+          - template: slack/message.yml@scripts
+            parameters:
+              CONDITION: true
+              SLACK_TOKEN: $(SLACK_TOKEN)
+              SLACK_CHANNEL: $(SLACK_CHANNEL)
+              SLACK_MESSAGE: |
+                :azure_pipelines: <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=results|$(SERVICENAME)-$(Build.BuildId)>
+                :az-$(Agent.JobStatus): [$(Agent.JobStatus)] [$(System.StageDisplayName) - $(Agent.JobName)]
+                :git: $(Build.Repository.Uri)/tree/$(Build.SourceBranchName) - $(SERVICENAME)
+
+  - stage: deploy
+    condition: and(succeeded(), variables.TRIGGER_DEPLOY)
+    jobs:
+      - job: deploy_api_fees_dev
+        condition: ${{ in(variables['Build.SourceBranch'], 'refs/heads/development') }}
+        variables:
+          SERVICENAME: 'api-fees-digitalcustomer'
+        displayName: "deploy api-fees-dev"
+        steps:
+          - template: .pipeline-templates/deploy_webapp.yml
+            parameters:
+              ENVIRONMENT: dev
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              RUNTIME_STACK: 'NODE|14-lts'
+              STARTUP_COMMAND: 'npm run start:prod'
+
+      - job: deploy_api_statistics_dev
+        condition: ${{ in(variables['Build.SourceBranch'], 'refs/heads/development') }}
+        variables:
+          SERVICENAME: 'api-statistics-digitalcustomer'
+        displayName: "deploy api-statistics-dev"
+        steps:
+          - template: .pipeline-templates/deploy_webapp.yml
+            parameters:
+              ENVIRONMENT: dev
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              RUNTIME_STACK: 'NODE|14-lts'
+              STARTUP_COMMAND: 'npm run start:prod'
+
+      - job: deploy_api_credits_dev
+        condition: ${{ in(variables['Build.SourceBranch'], 'refs/heads/development') }}
+        variables:
+          SERVICENAME: 'api-credits-digitalcustomer'
+        displayName: "deploy api-credits-dev"
+        steps:
+          - template: .pipeline-templates/deploy_webapp.yml
+            parameters:
+              ENVIRONMENT: dev
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              RUNTIME_STACK: 'NODE|14-lts'
+              STARTUP_COMMAND: 'npm run start:prod'
+
+      - job: deploy_api_customers_dev
+        condition: ${{ in(variables['Build.SourceBranch'], 'refs/heads/development') }}
+        variables:
+          SERVICENAME: 'api-customers-digitalcustomer'
+        displayName: "deploy api-customers-dev"
+        steps:
+          - template: .pipeline-templates/deploy_webapp.yml
+            parameters:
+              ENVIRONMENT: dev
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              RUNTIME_STACK: 'NODE|14-lts'
+              STARTUP_COMMAND: 'npm run start:prod'
+
+      - job: deploy_api_article_dev
+        condition: ${{ in(variables['Build.SourceBranch'], 'refs/heads/development') }}
+        variables:
+          SERVICENAME: 'api-article-digitalcustomer'
+        displayName: "deploy api-article-dev"
+        steps:
+          - template: .pipeline-templates/deploy_webapp.yml
+            parameters:
+              ENVIRONMENT: dev
+              ARTIFACT_NAME: "$(Build.DefinitionName)-$(SERVICENAME)"
+              RUNTIME_STACK: 'NODE|14-lts'
+              STARTUP_COMMAND: 'npm run start:prod'
+
+trigger:
+  - main
+  - development
+
+pr:
+  - none

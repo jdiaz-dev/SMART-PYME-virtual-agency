@@ -1,0 +1,13 @@
+version: '3.2'
+services:
+  frontend:
+    image: node:14-slim
+    command: bash -c 'cd credits && env && node -v && npm --version && npm install && npm run build && npm run start:prod'
+    ports:
+      - "80:3000"
+    working_dir: /app
+    user: "1000:1000"
+    volumes:
+      - type: "bind"
+        source: ./
+        target: /app

@@ -1,0 +1,1 @@
+export const QUERY_TYPE_IDS = [1,2]
